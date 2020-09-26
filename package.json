@@ -1,0 +1,32 @@
+{
+  "name": "smr-version-verifier",
+  "version": "1.0.0",
+  "description": "Uploads the mod to VirusTotal and if the result is good, approves the mod",
+  "main": "dist/index.js",
+  "author": "Mircea Roata",
+  "license": "MIT",
+  "scripts": {
+    "start": "ts-node src/index.ts",
+    "debug": "cross-env SMR_VERIFIER_DEBUG=true ts-node src/index.ts",
+    "test": "ts-node src/test.ts",
+    "test:debug": "cross-env SMR_VERIFIER_DEBUG=true ts-node src/test.ts",
+    "lint": "eslint --ext .js,.ts"
+  },
+  "dependencies": {
+    "form-data": "^3.0.0",
+    "got": "^11.7.0",
+    "jszip": "^3.5.0",
+    "winston": "^3.3.3"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^4.2.0",
+    "@typescript-eslint/parser": "^4.2.0",
+    "cross-env": "^7.0.2",
+    "eslint": "^7.2.0",
+    "eslint-config-airbnb-base": "^14.2.0",
+    "eslint-import-resolver-typescript": "^2.3.0",
+    "eslint-plugin-import": "^2.21.2",
+    "ts-node": "^9.0.0",
+    "typescript": "^4.0.3"
+  }
+}
