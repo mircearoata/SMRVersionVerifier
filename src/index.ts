@@ -34,12 +34,26 @@ async function checkForUnverifiedVersions() {
         logger.info(`Result of verifying ${version.mod_id}@${version.version} (${version.id}) is ${verifyResult ? 'ok' : 'bad'}.`);
         if (verifyResult) {
           try {
-            const approveQuery = await smrQuery(`
+            const alreadyApproved = (await smrQuery<{
+              getVersion: {
+                approved: boolean
+              }
+            }>(`
+            query($versionId: VersionID!) {
+              getVersion(versionId: $versionId) {
+                approved
+              }
+            }`, { versionId: version.id })).getVersion.approved;
+            if (alreadyApproved) {
+              logger.info(`Version ${version.mod_id}@${version.version} (${version.id}) was already approved in the meantime`);
+              return;
+            }
+            const approveQuery = await smrQuery<{
+              approveVersion: boolean
+            }>(`
             mutation($versionId: VersionID!) {
               approveVersion(versionId: $versionId)
-            }`, { versionId: version.id }) as {
-              approveVersion: boolean
-            };
+            }`, { versionId: version.id });
             if (!approveQuery.approveVersion) {
               logger.error(`Failed to approve ${version.mod_id}@${version.version} (${version.id}).`);
             }
