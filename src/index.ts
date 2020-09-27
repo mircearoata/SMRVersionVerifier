@@ -57,4 +57,4 @@ async function checkForUnverifiedVersions() {
 }
 
 logger.info('Initialized');
-setIntervalImmediate(checkForUnverifiedVersions, 30 * 1000);
+setIntervalImmediate(checkForUnverifiedVersions, 5 * 1000);
