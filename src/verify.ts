@@ -3,6 +3,7 @@ import { writeFileSync } from 'fs';
 import got from 'got/dist/source';
 import JSZip from 'jszip';
 import path from 'path';
+import { logger } from './logging';
 import { SMR_API_URL, SMRModVersion } from './smr';
 import { ensureExists, sleep } from './util';
 import { queueRequest } from './virustotal';
@@ -56,7 +57,7 @@ async function verifyFile(fileBuffer: Buffer, scanFileName: string, outputFileNa
 export async function verifyVersion(version: SMRModVersion): Promise<boolean> {
   const file = await got(`${SMR_API_URL}${version.link}`, { responseType: 'buffer' }).buffer();
 
-  const verify = [verifyFile(file, `${version.id}.smod`, `${version.mod_id}/${version.version}/${version.id}`)];
+  const verify = [];
 
   const zip = await JSZip.loadAsync(file);
   const data = JSON.parse((await zip.file('data.json')?.async('string')) || '{}') as {
@@ -71,7 +72,12 @@ export async function verifyVersion(version: SMRModVersion): Promise<boolean> {
     .map(async (object) => {
       const objectFile = zip.file(object.path);
       if (!objectFile) return Promise.resolve(true);
-      return verifyFile(await objectFile.async('nodebuffer'), `${version.id}_${object.path}`, `${version.mod_id}/${version.version}/${version.id}/${object.path}`);
+      try {
+        return verifyFile(await objectFile.async('nodebuffer'), `${version.id}_${object.path}`, `${version.mod_id}/${version.version}/${version.id}/${object.path}`);
+      } catch (e) {
+        logger.error(e);
+        return false;
+      }
     }));
 
   return (await Promise.all(verify)).every((a) => a);
