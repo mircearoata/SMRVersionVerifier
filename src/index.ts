@@ -30,11 +30,12 @@ async function checkForUnverifiedVersions() {
       if (!verifiedVersions.includes(version.id)) {
         verifiedVersions.push(version.id);
         logger.info(`Verifying ${version.mod_id}@${version.version} (${version.id}).`);
-        const verifyResult = await verifyVersion(version);
-        logger.info(`Result of verifying ${version.mod_id}@${version.version} (${version.id}) is ${verifyResult ? 'ok' : 'bad'}.`);
-        if (verifyResult) {
-          try {
-            const alreadyApproved = (await smrQuery<{
+        try {
+          const verifyResult = await verifyVersion(version);
+          logger.info(`Result of verifying ${version.mod_id}@${version.version} (${version.id}) is ${verifyResult ? 'ok' : 'bad'}.`);
+          if (verifyResult) {
+            try {
+              const alreadyApproved = (await smrQuery<{
               getVersion: {
                 approved: boolean
               }
@@ -44,24 +45,27 @@ async function checkForUnverifiedVersions() {
                 approved
               }
             }`, { versionId: version.id })).getVersion.approved;
-            if (alreadyApproved) {
-              logger.info(`Version ${version.mod_id}@${version.version} (${version.id}) was already approved in the meantime`);
-              return;
-            }
-            const approveQuery = await smrQuery<{
+              if (alreadyApproved) {
+                logger.info(`Version ${version.mod_id}@${version.version} (${version.id}) was already approved in the meantime`);
+                return;
+              }
+              const approveQuery = await smrQuery<{
               approveVersion: boolean
             }>(`
             mutation($versionId: VersionID!) {
               approveVersion(versionId: $versionId)
             }`, { versionId: version.id });
-            if (!approveQuery.approveVersion) {
-              logger.error(`Failed to approve ${version.mod_id}@${version.version} (${version.id}).`);
+              if (!approveQuery.approveVersion) {
+                logger.error(`Failed to approve ${version.mod_id}@${version.version} (${version.id}).`);
+              }
+            } catch (e) {
+              logger.error(`Error approving ${version.mod_id}@${version.version} (${version.id}): ${formatError(e)}.`);
             }
-          } catch (e) {
-            logger.error(`Error approving ${version.mod_id}@${version.version} (${version.id}): ${formatError(e)}.`);
+          } else {
+            logger.info('Version should be checked manually.');
           }
-        } else {
-          logger.info('Version should be checked manually.');
+        } catch (e) {
+          logger.error(`Error verifying ${version.mod_id}@${version.version} (${version.id}): ${formatError(e)}.`);
         }
       }
     });
