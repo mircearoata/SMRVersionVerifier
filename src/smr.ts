@@ -15,7 +15,7 @@ export interface SMRModVersion {
 export async function smrQuery<T>(query: string, variables?: unknown): Promise<T> {
   const result = JSON.parse((await got(SMR_GQL_URL, {
     headers: {
-      Authorization: SMRAuthorization,
+      Authorization: process.env.SMRAuthorization || SMRAuthorization,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
