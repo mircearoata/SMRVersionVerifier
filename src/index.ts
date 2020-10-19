@@ -65,7 +65,7 @@ async function checkForUnverifiedVersions() {
             logger.info('Version should be checked manually.');
           }
         } catch (e) {
-          logger.error(`Error verifying ${version.mod_id}@${version.version} (${version.id}): ${formatError(e)}.`);
+          logger.error(`Error verifying ${version.mod_id}@${version.version} (${version.id}): ${formatError(e)}.\n${JSON.stringify(e)}`);
         }
       }
     });
