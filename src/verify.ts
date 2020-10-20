@@ -1,6 +1,6 @@
 import FormData from 'form-data';
 import { writeFileSync } from 'fs';
-import got from 'got/dist/source';
+import got, { HTTPError } from 'got/dist/source';
 import JSZip from 'jszip';
 import path from 'path';
 import { logger } from './logging';
@@ -49,13 +49,32 @@ async function verifyFile(fileBuffer: Buffer, scanFileName: string, outputFileNa
       return result.data.attributes.stats.suspicious === 0
           && result.data.attributes.stats.malicious === 0;
     }
-    await sleep(firstCheck ? 30 : 5); // wait more if the first check fails, as the file is a new one for VT
+    await sleep(firstCheck ? 20 : 5); // wait more if the first check fails, as the file is a new one for VT
     firstCheck = false;
   }
 }
 
+const MAX_DOWNLOAD_ATTEMPTS = 20;
+const DOWNLOAD_ATTEMPT_INTERVAL = 5;
+
 export async function verifyVersion(version: SMRModVersion): Promise<boolean> {
-  const file = await got(`${SMR_API_URL}${version.link}`, { responseType: 'buffer' }).buffer();
+  let file = null;
+  let attempt = 0;
+  while (!file) {
+    try {
+      file = await got(`${SMR_API_URL}${version.link}`, { responseType: 'buffer' }).buffer();
+    } catch (e) {
+      if (e instanceof HTTPError && (e as HTTPError).response.statusCode === 400) {
+        attempt += 1;
+        if (attempt === MAX_DOWNLOAD_ATTEMPTS) {
+          throw e;
+        }
+      } else {
+        throw e;
+      }
+    }
+    await sleep(DOWNLOAD_ATTEMPT_INTERVAL);
+  }
 
   const verify = [];
 

@@ -11,7 +11,7 @@ export interface VTRequest {
 }
 
 const VT_API_URL = 'https://www.virustotal.com/api/v3';
-const RATE_LIMIT = 180; // VT says 240 but somehow it still rate limits
+const RATE_LIMIT = 240;
 const RATE_LIMIT_PERIOD = 60 * 60; // seconds
 
 interface VTRequestQueueEntry<T> {
