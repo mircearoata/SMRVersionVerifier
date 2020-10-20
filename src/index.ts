@@ -1,3 +1,4 @@
+import { HTTPError } from 'got/dist/source';
 import { smrQuery, SMRModVersion } from './smr';
 import {
   formatError, setIntervalImmediate,
@@ -65,7 +66,11 @@ async function checkForUnverifiedVersions() {
             logger.info('Version should be checked manually.');
           }
         } catch (e) {
-          logger.error(`Error verifying ${version.mod_id}@${version.version} (${version.id}): ${formatError(e)}.\n${JSON.stringify(e)}`);
+          if (e instanceof HTTPError) {
+            logger.error(`Error verifying ${version.mod_id}@${version.version} (${version.id}): ${formatError(e)}\nRequest: ${JSON.stringify((e as HTTPError).request)}\nResponse: ${JSON.stringify((e as HTTPError).response)}.`);
+          } else {
+            logger.error(`Error verifying ${version.mod_id}@${version.version} (${version.id}): ${formatError(e)}.`);
+          }
         }
       }
     });
