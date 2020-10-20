@@ -67,7 +67,7 @@ async function checkForUnverifiedVersions() {
           }
         } catch (e) {
           if (e instanceof HTTPError) {
-            logger.error(`Error verifying ${version.mod_id}@${version.version} (${version.id}): ${formatError(e)}\nRequest: ${JSON.stringify((e as HTTPError).request)}\nResponse: ${JSON.stringify((e as HTTPError).response)}.`);
+            logger.error(`Error verifying ${version.mod_id}@${version.version} (${version.id}): ${formatError(e)}\nRequest: ${((e as HTTPError).request).requestUrl}\nResponse: ${JSON.stringify((e as HTTPError).response.body)}.`);
           } else {
             logger.error(`Error verifying ${version.mod_id}@${version.version} (${version.id}): ${formatError(e)}.`);
           }
