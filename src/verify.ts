@@ -3,6 +3,7 @@ import { writeFileSync } from 'fs';
 import got, { HTTPError } from 'got/dist/source';
 import JSZip from 'jszip';
 import path from 'path';
+import { performance } from 'perf_hooks';
 import { logger } from './logging';
 import { SMR_API_URL, SMRModVersion } from './smr';
 import { ensureExists, sleep } from './util';
@@ -14,6 +15,7 @@ import { queueRequest } from './virustotal';
  * @param outputFileName
  */
 async function verifyFile(fileBuffer: Buffer, scanFileName: string, outputFileName: string): Promise<boolean> {
+  const t0 = performance.now();
   const uploadURL = (await queueRequest<string>({
     endpoint: '/files/upload_url',
     method: 'GET',
@@ -27,6 +29,9 @@ async function verifyFile(fileBuffer: Buffer, scanFileName: string, outputFileNa
     method: 'POST',
     body: form,
   })).data.id;
+  const t1 = performance.now();
+
+  logger.info(`Uploaded ${scanFileName} to VT. (Took ${t1 - t0}ms)`);
 
   let firstCheck = true;
   // eslint-disable-next-line no-constant-condition
@@ -60,6 +65,7 @@ const DOWNLOAD_ATTEMPT_INTERVAL = 5;
 export async function verifyVersion(version: SMRModVersion): Promise<boolean> {
   let file = null;
   let attempt = 0;
+  const t0 = performance.now();
   while (!file) {
     try {
       file = await got(`${SMR_API_URL}${version.link}`, { responseType: 'buffer' }).buffer();
@@ -75,6 +81,8 @@ export async function verifyVersion(version: SMRModVersion): Promise<boolean> {
     }
     await sleep(DOWNLOAD_ATTEMPT_INTERVAL);
   }
+  const t1 = performance.now();
+  logger.info(`Downloaded ${version.mod_id}@${version.version} (${version.id}). (Took ${t1 - t0}ms)`);
 
   const verify = [];
 

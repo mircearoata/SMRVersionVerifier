@@ -1,4 +1,5 @@
 import { HTTPError } from 'got/dist/source';
+import { performance } from 'perf_hooks';
 import { smrQuery, SMRModVersion } from './smr';
 import {
   formatError, setIntervalImmediate,
@@ -32,8 +33,10 @@ async function checkForUnverifiedVersions() {
         verifiedVersions.push(version.id);
         logger.info(`Verifying ${version.mod_id}@${version.version} (${version.id}).`);
         try {
+          const t0 = performance.now();
           const verifyResult = await verifyVersion(version);
-          logger.info(`Result of verifying ${version.mod_id}@${version.version} (${version.id}) is ${verifyResult ? 'ok' : 'bad'}.`);
+          const t1 = performance.now();
+          logger.info(`Result of verifying ${version.mod_id}@${version.version} (${version.id}) is ${verifyResult ? 'ok' : 'bad'}. (Took ${t1 - t0}ms)`);
           if (verifyResult) {
             try {
               const alreadyApproved = (await smrQuery<{
