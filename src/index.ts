@@ -7,6 +7,7 @@ import {
 import { logger } from './logging';
 import { verifyVersion } from './verify';
 
+const queuedVersions: string[] = [];
 const verifiedVersions: string[] = [];
 
 async function checkForUnverifiedVersions() {
@@ -16,21 +17,22 @@ async function checkForUnverifiedVersions() {
         versions: SMRModVersion[]
       }
     }>(`
-    query {
-      getUnapprovedVersions {
-        versions {
-          id,
-          mod_id,
-          version
-          link,
+      query {
+        getUnapprovedVersions {
+          versions {
+            id,
+            mod_id,
+            version
+            link,
+          }
         }
       }
-    }`);
+    `);
     const unapprovedVersions = versionQuery.getUnapprovedVersions.versions;
 
     unapprovedVersions.forEach(async (version) => {
-      if (!verifiedVersions.includes(version.id)) {
-        verifiedVersions.push(version.id);
+      if (!queuedVersions.includes(version.id) && !verifiedVersions.includes(version.id)) {
+        queuedVersions.push(version.id);
         logger.info(`Verifying ${version.mod_id}@${version.version} (${version.id}).`);
         try {
           const t0 = performance.now();
@@ -40,26 +42,31 @@ async function checkForUnverifiedVersions() {
           if (verifyResult) {
             try {
               const alreadyApproved = (await smrQuery<{
-              getVersion: {
-                approved: boolean
-              }
-            }>(`
-            query($versionId: VersionID!) {
-              getVersion(versionId: $versionId) {
-                approved
-              }
-            }`, { versionId: version.id })).getVersion.approved;
+                getVersion: {
+                  approved: boolean
+                }
+              }>(`
+                query($versionId: VersionID!) {
+                  getVersion(versionId: $versionId) {
+                    approved
+                  }
+                }
+              `, { versionId: version.id })).getVersion.approved;
               if (alreadyApproved) {
                 logger.info(`Version ${version.mod_id}@${version.version} (${version.id}) was already approved in the meantime`);
                 return;
               }
               const approveQuery = await smrQuery<{
-              approveVersion: boolean
-            }>(`
-            mutation($versionId: VersionID!) {
-              approveVersion(versionId: $versionId)
-            }`, { versionId: version.id });
-              if (!approveQuery.approveVersion) {
+                approveVersion: boolean
+              }>(`
+                mutation($versionId: VersionID!) {
+                  approveVersion(versionId: $versionId)
+                }
+              `, { versionId: version.id });
+              if (approveQuery.approveVersion) {
+                logger.info(`Successfully approved ${version.mod_id}@${version.version} (${version.id}).`);
+                verifiedVersions.push(version.id);
+              } else {
                 logger.error(`Failed to approve ${version.mod_id}@${version.version} (${version.id}).`);
               }
             } catch (e) {
@@ -67,6 +74,7 @@ async function checkForUnverifiedVersions() {
             }
           } else {
             logger.info('Version should be checked manually.');
+            verifiedVersions.push(version.id);
           }
         } catch (e) {
           if (e instanceof HTTPError) {
@@ -75,6 +83,7 @@ async function checkForUnverifiedVersions() {
             logger.error(`Error verifying ${version.mod_id}@${version.version} (${version.id}): ${formatError(e)}.`);
           }
         }
+        queuedVersions.splice(queuedVersions.indexOf(version.id), 1);
       }
     });
   } catch (e) {
