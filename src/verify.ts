@@ -87,20 +87,11 @@ export async function verifyVersion(version: SMRModVersion): Promise<boolean> {
   const verify = [];
 
   const zip = await JSZip.loadAsync(file);
-  const data = JSON.parse((await zip.file('data.json')?.async('string')) || '{}') as {
-    objects: {
-      type: string,
-      path: string,
-    }[]
-  };
 
-  verify.push(...data.objects
-    .filter((object) => object.type === 'sml_mod' || object.type === 'core_mod')
-    .map(async (object) => {
-      const objectFile = zip.file(object.path);
-      if (!objectFile) return Promise.resolve(true);
+  verify.push(...zip.filter((relPath, f) => path.extname(f.name) === '.dll')
+    .map(async (objectFile) => {
       try {
-        return verifyFile(await objectFile.async('nodebuffer'), `${version.id}_${object.path}`, `${version.mod_id}/${version.version}/${version.id}/${object.path}`);
+        return verifyFile(await objectFile.async('nodebuffer'), `${version.id}_${objectFile.name}`, `${version.mod_id}/${version.version}_${version.id}/${objectFile.name}`);
       } catch (e) {
         logger.error(e);
         return false;
